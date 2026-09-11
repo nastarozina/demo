@@ -52,16 +52,6 @@ scmVersion {
     }
 
     versionCreator('simple')
-
-    branchVersionIncrementer.putAll(
-            'feature/.*'   : 'incrementMinor',
-            'feat/.*'      : 'incrementMinor',
-            'fix/.*'       : 'incrementPatch',
-            'bugfix/.*'    : 'incrementPatch',
-            'patch/.*'     : 'incrementPatch',
-            'breaking/.*'  : 'incrementMajor',
-            'break/.*'     : 'incrementMajor'
-    )
 }
 
 version = scmVersion.version
