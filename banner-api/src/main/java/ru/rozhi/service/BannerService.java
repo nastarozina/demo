@@ -2,6 +2,7 @@ package ru.rozhi.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.rozhi.controller.dto.BannerRequest;
 import ru.rozhi.controller.dto.BannerResponse;
 import ru.rozhi.repository.BannerRepository;
 import ru.rozhi.repository.model.Banner;
@@ -20,6 +21,7 @@ public class BannerService {
         if (banner == null) return null;
 
         return new BannerResponse(
+                banner.getId(),
                banner.getName(),
                banner.getDescription()
         );
@@ -27,7 +29,20 @@ public class BannerService {
 
     public List<BannerResponse> getAllBanners() {
         List<Banner> banners = repository.findAll();
-        return banners.stream().map(banner -> new BannerResponse(banner.getName(), banner.getDescription()))
+        return banners.stream().map(banner -> new BannerResponse(banner.getId(), banner.getName(), banner.getDescription()))
                 .collect(Collectors.toList());
+    }
+
+    public BannerResponse createBanner(BannerRequest banner) {
+        Banner createdBanner =  repository.save(Banner.builder()
+                .name(banner.name())
+                .description(banner.description())
+                .build());
+
+        return new BannerResponse(
+                createdBanner.getId(),
+                createdBanner.getName(),
+                createdBanner.getDescription()
+        );
     }
 }
