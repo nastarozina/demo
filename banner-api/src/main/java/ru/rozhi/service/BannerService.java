@@ -6,6 +6,7 @@ import ru.rozhi.controller.dto.BannerRequest;
 import ru.rozhi.controller.dto.BannerResponse;
 import ru.rozhi.repository.BannerRepository;
 import ru.rozhi.repository.model.Banner;
+import ru.rozhi.utils.MapperUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,11 +21,7 @@ public class BannerService {
         Banner banner = repository.findById(id).orElse(null);
         if (banner == null) return null;
 
-        return new BannerResponse(
-                banner.getId(),
-               banner.getName(),
-               banner.getDescription()
-        );
+        return MapperUtils.getBannerResponse(banner);
     }
 
     public List<BannerResponse> getAllBanners() {
@@ -39,10 +36,6 @@ public class BannerService {
                 .description(banner.description())
                 .build());
 
-        return new BannerResponse(
-                createdBanner.getId(),
-                createdBanner.getName(),
-                createdBanner.getDescription()
-        );
+        return MapperUtils.getBannerResponse(createdBanner);
     }
 }

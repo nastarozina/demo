@@ -113,19 +113,22 @@ public class BannerControllerTest {
         BannerResponse responseOfPostRequest =
                 objectMapper.readValue(resultOfPostRequest.getResponse().getContentAsString(), BannerResponse.class);
 
+        assertThat(responseOfPostRequest.id()).isNotNull();
         assertThat(responseOfPostRequest.name()).isEqualTo(bannerRequest.name());
         assertThat(responseOfPostRequest.description()).isEqualTo(bannerRequest.description());
 
         Banner banner = bannerRepository.findById(responseOfPostRequest.id()).orElse(null);
         assertThat(banner).isNotNull();
 
-        MvcResult resultOfGetRequest = mockMvc.perform(get("/" + responseOfPostRequest.id()))
+        String bannerUrl = resultOfPostRequest.getResponse().getHeader("Location");
+        MvcResult resultOfGetRequest = mockMvc.perform(get(bannerUrl))
                 .andExpect(status().isOk())
                 .andReturn();
 
         BannerResponse responseOfGetRequest =
                 objectMapper.readValue(resultOfGetRequest.getResponse().getContentAsString(), BannerResponse.class);
 
+        assertThat(responseOfGetRequest.id()).isNotNull();
         assertThat(responseOfGetRequest.name()).isEqualTo(bannerRequest.name());
         assertThat(responseOfGetRequest.description()).isEqualTo(bannerRequest.description());
     }
