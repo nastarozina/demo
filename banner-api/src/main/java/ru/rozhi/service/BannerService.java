@@ -26,8 +26,7 @@ public class BannerService {
 
     public List<BannerResponse> getAllBanners() {
         List<Banner> banners = repository.findAll();
-        return banners.stream().map(banner -> new BannerResponse(banner.getId(), banner.getName(), banner.getDescription()))
-                .collect(Collectors.toList());
+        return banners.stream().map(MapperUtils::getBannerResponse).collect(Collectors.toList());
     }
 
     public BannerResponse createBanner(BannerRequest banner) {
@@ -37,5 +36,25 @@ public class BannerService {
                 .build());
 
         return MapperUtils.getBannerResponse(createdBanner);
+    }
+
+    public BannerResponse updateBanner(String id, BannerRequest bannerToUpdate) {
+        Banner banner = repository.findById(id).orElse(null);
+
+        if (banner == null) {
+            return null;
+        }
+
+        if (bannerToUpdate.name() != null && !bannerToUpdate.name().isBlank()) {
+            banner.setName(bannerToUpdate.name());
+        }
+
+        if (bannerToUpdate.description() != null) {
+            banner.setDescription(bannerToUpdate.description());
+        }
+
+        banner = repository.save(banner);
+
+        return MapperUtils.getBannerResponse(banner);
     }
 }
