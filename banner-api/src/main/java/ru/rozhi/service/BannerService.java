@@ -60,13 +60,13 @@ public class BannerService {
         return MapperUtils.getBannerResponse(banner);
     }
 
-    public BannerResponse deleteBanner(String id) {
-        Banner banner = repository.findById(id).orElse(null);
-        if (banner == null) {
-            return null;
+    public boolean deleteBanner(String id) {
+        boolean isBannerExist = repository.existsById(id);
+        if (!isBannerExist) {
+            return false;
         }
 
         repository.deleteById(id);
-        return MapperUtils.getBannerResponse(banner);
+        return true;
     }
 }

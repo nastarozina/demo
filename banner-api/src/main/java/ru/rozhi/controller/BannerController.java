@@ -65,8 +65,7 @@ public class BannerController {
 
     @DeleteMapping(BANNER_PATH)
     public ResponseEntity<@NonNull BannerResponse> deleteBanner(@PathVariable String id) {
-        BannerResponse deletedBanner = bannerService.deleteBanner(id);
-        if (deletedBanner == null) {
+        if (!bannerService.deleteBanner(id)) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok().build();
