@@ -19,7 +19,9 @@ public class BannerService {
 
     public BannerResponse getBannerById(String id) {
         Banner banner = repository.findById(id).orElse(null);
-        if (banner == null) return null;
+        if (banner == null) {
+            return null;
+        }
 
         return MapperUtils.getBannerResponse(banner);
     }
@@ -56,5 +58,15 @@ public class BannerService {
         banner = repository.save(banner);
 
         return MapperUtils.getBannerResponse(banner);
+    }
+
+    public boolean deleteBanner(String id) {
+        boolean isBannerExist = repository.existsById(id);
+        if (!isBannerExist) {
+            return false;
+        }
+
+        repository.deleteById(id);
+        return true;
     }
 }
