@@ -10,4 +10,7 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private CategoryService NNN;
+
 }
