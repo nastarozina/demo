@@ -1,6 +1,7 @@
 package ru.rozhi;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -12,6 +13,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 import ru.rozhi.repository.CategoryRepository;
 import tools.jackson.databind.ObjectMapper;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -38,4 +41,8 @@ public class CategoryControllerTest {
         categoryRepository.deleteAll();
     }
 
+    @Test
+    void randomTest() {
+        assertEquals(4, 2 + 2);
+    }
 }
