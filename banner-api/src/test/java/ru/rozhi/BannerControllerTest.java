@@ -81,7 +81,7 @@ public class BannerControllerTest {
         bannerRepository.save(Banner.builder().id("banner2").name("NAME2").description("DESCRIPTION2").build());
         BannerResponse expected = new BannerResponse("banner2","NAME2", "DESCRIPTION2");
 
-        MvcResult result = mockMvc.perform(get("/banner2"))
+        MvcResult result = mockMvc.perform(get("/banner"))
                 .andExpect(status().isOk())
                 .andReturn();
 
