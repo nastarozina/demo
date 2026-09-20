@@ -8,6 +8,6 @@ import ru.rozhi.service.CategoryService;
 public class CategoryController {
 
     @Autowired
-    private CategoryService ;
+    private CategoryService categoryServ;
 
 }
