@@ -9,5 +9,7 @@ public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
-tytytytyty
+
+    @Autowired
+    private CategoryService Service;
 }
