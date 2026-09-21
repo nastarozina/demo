@@ -3,13 +3,7 @@ package ru.rozhi.controller;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import ru.rozhi.controller.dto.BannerRequest;
 import ru.rozhi.controller.dto.BannerResponse;
@@ -27,12 +21,8 @@ public class BannerController {
     private BannerService bannerService;
 
     @GetMapping(BANNER_PATH)
-    public ResponseEntity<@NonNull BannerResponse> getBannerById(@PathVariable String id) {
-        BannerResponse banner = bannerService.getBannerById(id);
-        if (banner == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(banner);
+    public BannerResponse getBannerById(@PathVariable String id) {
+        return bannerService.getBannerById(id);
     }
 
     @GetMapping
@@ -53,21 +43,12 @@ public class BannerController {
     }
 
     @PutMapping(BANNER_PATH)
-    public ResponseEntity<@NonNull BannerResponse> updateBanner(@PathVariable String id, @RequestBody BannerRequest bannerToUpdate) {
-        BannerResponse banner = bannerService.updateBanner(id, bannerToUpdate);
-
-        if (banner == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(banner);
+    public BannerResponse updateBanner(@PathVariable String id, @RequestBody BannerRequest bannerToUpdate) {
+        return bannerService.updateBanner(id, bannerToUpdate);
     }
 
     @DeleteMapping(BANNER_PATH)
-    public ResponseEntity<@NonNull BannerResponse> deleteBanner(@PathVariable String id) {
-        if (!bannerService.deleteBanner(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok().build();
+    public void deleteBanner(@PathVariable String id) {
+        bannerService.deleteBanner(id);
     }
 }
