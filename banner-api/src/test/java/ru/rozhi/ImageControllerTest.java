@@ -153,8 +153,6 @@ public class ImageControllerTest {
         assertThat(images.getFirst().getSize()).isNull();
         assertThat(images.getFirst().getStatus()).isEqualTo(ImageStatus.PENDING);
 
-        uploadImage("__files/test-image.jpg", contentType1, uploadUrlResponse1.uploadUrl());
-
         String contentType2 = "image/png";
         UploadUrlRequest uploadUrlRequest2 = new UploadUrlRequest(contentType2);
 
