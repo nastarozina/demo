@@ -26,6 +26,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +57,7 @@ public class CategoryControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldReturnAllBanners() {
+    void shouldReturnAllCategories() {
         categoryRepository.save(Category.builder().id("category1").name("NAME1").build());
         categoryRepository.save(Category.builder().id("category2").name("NAME2").build());
         List<CategoryResponse> expected = List.of(new CategoryResponse("category1", "NAME1"),
@@ -74,7 +75,7 @@ public class CategoryControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldReturnBannerById() {
+    void shouldReturnCategoryById() {
         categoryRepository.save(Category.builder().id("category1").name("NAME1").build());
         categoryRepository.save(Category.builder().id("category2").name("NAME2").build());
         CategoryResponse expected = new CategoryResponse("category2","NAME2");
@@ -91,14 +92,14 @@ public class CategoryControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldReturn404WhenBannerNotFound() {
+    void shouldReturn404WhenCategoryNotFound() {
         categoryRepository.save(Category.builder().id("category1").name("NAME1").build());
         mockMvc.perform(get("/category2")).andExpect(status().isNotFound());
     }
 
     @Test
     @SneakyThrows
-    void shouldCreateBannerAndReturnItById() {
+    void shouldCreateCategoryAndReturnItById() {
         CategoryRequest categoryRequest = new CategoryRequest("NAME2");
         MvcResult resultOfPostRequest =
                 mockMvc.perform(
@@ -119,8 +120,8 @@ public class CategoryControllerTest {
         Category category = categoryRepository.findById(responseOfPostRequest.id()).orElse(null);
         assertThat(category).isNotNull();
 
-        String bannerUrl = resultOfPostRequest.getResponse().getHeader("Location");
-        MvcResult resultOfGetRequest = mockMvc.perform(get(bannerUrl))
+        String categoryUrl = resultOfPostRequest.getResponse().getHeader("Location");
+        MvcResult resultOfGetRequest = mockMvc.perform(get(categoryUrl))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -130,4 +131,54 @@ public class CategoryControllerTest {
         assertThat(responseOfGetRequest.id()).isNotNull();
         assertThat(responseOfGetRequest.name()).isEqualTo(categoryRequest.name());
     }
+
+    @Test
+    @SneakyThrows
+    void shouldUpdateCategoryAndReturnIt() {
+        categoryRepository.save(Category.builder().id("category1").name("NAME1").build());
+
+        CategoryRequest updateCategoryRequest1 = new CategoryRequest("  ");
+        CategoryResponse expected1 = new CategoryResponse("category1", "NAME1");
+
+        CategoryRequest updateCategoryRequest2 = new CategoryRequest("NAME2");
+        CategoryResponse expected2 = new CategoryResponse("category1", "NAME2");
+
+        MvcResult result1 = mockMvc.perform(
+                        put("/category1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateCategoryRequest1))
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        CategoryResponse response1 = objectMapper.readValue(result1.getResponse().getContentAsString(), CategoryResponse.class);
+
+        assertThat(response1).isEqualTo(expected1);
+
+        MvcResult result2 = mockMvc.perform(
+                        put("/category1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateCategoryRequest2))
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        CategoryResponse response2 = objectMapper.readValue(result2.getResponse().getContentAsString(), CategoryResponse.class);
+
+        assertThat(response2).isEqualTo(expected2);
+    }
+
+    @Test
+    @SneakyThrows
+    void shouldReturn404WhenCategoryToUpdateNotFound() {
+        CategoryRequest updateCategoryRequest = new CategoryRequest("NAME1");
+
+        mockMvc.perform(
+                        put("/category1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateCategoryRequest))
+                )
+                .andExpect(status().isNotFound());
+    }
+
 }
