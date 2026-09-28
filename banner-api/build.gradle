@@ -32,6 +32,7 @@ dependencies {
 
     // spring
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
 	compileOnly 'org.projectlombok:lombok'
@@ -45,10 +46,10 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers-mongodb'
     testImplementation 'com.adobe.testing:s3mock-testcontainers:5.2.2'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.wiremock.integrations:wiremock-spring-boot:4.2.3'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.wiremock:wiremock-standalone:3.13.1'
 
     implementation 'com.github.nastarozina:error-handling-starter:1.0.4'
 }
