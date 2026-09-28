@@ -1,0 +1,84 @@
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200
+
+spring:
+  application:
+    name: inbound-gateway
+
+  threads:
+    virtual:
+      enabled: true
+
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: auth-service
+            uri: lb://auth-service
+            predicates:
+              - Path=/api/auth/**
+            filters:
+              - StripPrefix=1
+
+          - id: user-service
+            uri: lb://user-service
+            predicates:
+              - Path=/api/users/**
+            filters:
+              - StripPrefix=1
+
+          - id: order-service
+            uri: lb://order-service
+            predicates:
+              - Path=/api/orders/**
+            filters:
+              - StripPrefix=1
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://keycloak.example.com/realms/myapp
+          jwk-set-uri: https://keycloak.example.com/realms/myapp/protocol/openid-connect/certs
+
+# Конфигурация правил авторизации
+security:
+  default-access: authenticated
+  routes:
+    # Публичные
+    - path: /api/auth/**
+      access: permit
+    - path: /actuator/health
+      access: permit
+    - path: /actuator/info
+      access: permit
+
+    # Публичный GET для продуктов
+    - path: /api/products/**
+      access: permit
+      method: GET
+
+    # Аутентифицированные
+    - path: /api/users/**
+      access: authenticated
+    - path: /api/orders/**
+      access: authenticated
+
+    # Роли
+    - path: /api/admin/**
+      access: role:ADMIN
+    - path: /api/reports/**
+      access: role:ADMIN,role:MANAGER
+
+    # Authority
+    - path: /api/billing/**
+      access: authority:BILLING_READ,authority:BILLING_WRITE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

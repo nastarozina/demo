@@ -1,0 +1,51 @@
+{
+  "realm": "test-realm",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "gateway-client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Regular user role"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Admin role"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "email": "testuser@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password"
+        }
+      ],
+      "realmRoles": ["USER"]
+    },
+    {
+      "username": "adminuser",
+      "enabled": true,
+      "email": "admin@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password"
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    }
+  ]
+}
