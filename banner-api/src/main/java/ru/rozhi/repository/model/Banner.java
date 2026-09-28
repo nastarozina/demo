@@ -20,6 +20,8 @@ public class Banner{
 
     private String description;
 
+    private String categoryId;
+
     @Builder.Default
     private List<Image> images = new ArrayList<>();
 }
