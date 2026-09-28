@@ -5,20 +5,13 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mongodb.MongoDBContainer;
-import org.testcontainers.utility.DockerImageName;
 import ru.rozhi.client.CategoryClient;
 import ru.rozhi.configuration.StorageProperties;
 import ru.rozhi.controller.dto.BannerRequest;
@@ -26,7 +19,6 @@ import ru.rozhi.controller.dto.BannerResponse;
 import ru.rozhi.controller.dto.CategoryResponse;
 import ru.rozhi.controller.dto.UploadUrlRequest;
 import ru.rozhi.controller.dto.UploadUrlResponse;
-import ru.rozhi.repository.BannerRepository;
 import ru.rozhi.repository.model.Image;
 import ru.rozhi.repository.model.ImageStatus;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -35,7 +27,6 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Object;
-import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -48,34 +39,16 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@Testcontainers
-public class ImageControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private BannerRepository bannerRepository;
+public class ImageControllerTest extends BaseControllerTest {
 
     @Autowired
     private S3Client s3Client;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private StorageProperties storageProperties;
 
     @MockitoBean
     private CategoryClient categoryClient;
-
-    @Container
-    @ServiceConnection
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer(
-            DockerImageName.parse("mongo:8.3.11")
-    );
 
     @Container
     static S3MockContainer s3Mock = new S3MockContainer("5.2.0")
@@ -88,8 +61,6 @@ public class ImageControllerTest {
 
     @BeforeEach
     public void setUp() {
-        bannerRepository.deleteAll();
-
         String bucket = storageProperties.getBucket();
 
         var response = s3Client.listObjectsV2(
@@ -132,10 +103,7 @@ public class ImageControllerTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String bannerId = objectMapper.readValue(
-                createResult.getResponse().getContentAsString(),
-                        BannerResponse.class
-                ).id();
+        String bannerId = getResponse(createResult, BannerResponse.class).id();
 
         String contentType1 = "image/jpeg";
         UploadUrlRequest uploadUrlRequest1 = new UploadUrlRequest(contentType1);
@@ -148,10 +116,7 @@ public class ImageControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        UploadUrlResponse uploadUrlResponse1 = objectMapper.readValue(
-                uploadUrlResult1.getResponse().getContentAsString(),
-                UploadUrlResponse.class
-        );
+        UploadUrlResponse uploadUrlResponse1 = getResponse(uploadUrlResult1, UploadUrlResponse.class);
 
         List<Image> images = bannerRepository.findById(bannerId).orElseThrow().getImages();
         assertThat(images).size().isEqualTo(1);
@@ -172,10 +137,7 @@ public class ImageControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        UploadUrlResponse uploadUrlResponse2 = objectMapper.readValue(
-                uploadUrlResult2.getResponse().getContentAsString(),
-                UploadUrlResponse.class
-        );
+        UploadUrlResponse uploadUrlResponse2 = getResponse(uploadUrlResult2, UploadUrlResponse.class);
 
         images = bannerRepository.findById(bannerId).orElseThrow().getImages();
         assertThat(images).size().isEqualTo(2);
