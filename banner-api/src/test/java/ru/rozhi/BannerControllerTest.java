@@ -1,5 +1,7 @@
 package ru.rozhi;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
+import ru.rozhi.client.CategoryClient;
 import ru.rozhi.controller.dto.BannerRequest;
 import tools.jackson.core.type.TypeReference;
 import org.testcontainers.utility.DockerImageName;
@@ -23,6 +26,9 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
+@WireMockTest(httpPort = 8001)
 public class BannerControllerTest {
 
     @Container
@@ -59,11 +66,20 @@ public class BannerControllerTest {
     @Test
     @SneakyThrows
     void shouldReturnAllBanners() {
-        bannerRepository.save(Banner.builder().id("banner1").name("NAME1").description("DESCRIPTION1").build());
-        bannerRepository.save(Banner.builder().id("banner2").name("NAME2").description("DESCRIPTION2").build());
+        bannerRepository.save(Banner.builder().id("banner1").name("NAME1").description("DESCRIPTION1").categoryId("1").build());
+        bannerRepository.save(Banner.builder().id("banner2").name("NAME2").description("DESCRIPTION2").categoryId("2").build());
         List<BannerResponse> expected = List.of(
-                new BannerResponse("banner1", "NAME1", "DESCRIPTION1", List.of()),
-                new BannerResponse("banner2","NAME2", "DESCRIPTION2", List.of())
+                new BannerResponse("banner1", "NAME1", "DESCRIPTION1", "Electronics", List.of()),
+                new BannerResponse("banner2","NAME2", "DESCRIPTION2", "Cars", List.of())
+        );
+
+        stubFor(WireMock.get(urlEqualTo("/names?categoriesId=1&categoriesId=2"))
+                .willReturn(
+                        aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-3.json")
+                )
         );
 
         MvcResult result = mockMvc.perform(get("/"))
@@ -79,9 +95,22 @@ public class BannerControllerTest {
     @Test
     @SneakyThrows
     void shouldReturnBannerById() {
-        bannerRepository.save(Banner.builder().id("banner1").name("NAME1").description("DESCRIPTION1").build());
-        bannerRepository.save(Banner.builder().id("banner2").name("NAME2").description("DESCRIPTION2").build());
-        BannerResponse expected = new BannerResponse("banner2","NAME2", "DESCRIPTION2", List.of());
+        bannerRepository.save(Banner.builder().id("banner1").name("NAME1").description("DESCRIPTION1").categoryId("1")
+                .build());
+
+        bannerRepository.save(Banner.builder().id("banner2").name("NAME2").description("DESCRIPTION2").categoryId("2")
+                .build());
+        BannerResponse expected = new BannerResponse("banner2","NAME2", "DESCRIPTION2",
+                "Electronics", List.of());
+
+        stubFor(WireMock.get(urlEqualTo("/2"))
+                        .willReturn(
+                        aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-1.json")
+                        )
+        );
 
         MvcResult result = mockMvc.perform(get("/banner2"))
                 .andExpect(status().isOk())
@@ -103,7 +132,16 @@ public class BannerControllerTest {
     @Test
     @SneakyThrows
     void shouldCreateBannerAndReturnItById() {
-        BannerRequest bannerRequest = new BannerRequest("NAME2", "DESCRIPTION2");
+        BannerRequest bannerRequest = new BannerRequest("NAME2", "DESCRIPTION2", "2");
+        stubFor(WireMock.get(urlEqualTo("/2"))
+                .willReturn(
+                        aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-1.json")
+                )
+        );
+
         MvcResult resultOfPostRequest =
                 mockMvc.perform(
                         post("/")
@@ -120,6 +158,7 @@ public class BannerControllerTest {
         assertThat(responseOfPostRequest.id()).isNotNull();
         assertThat(responseOfPostRequest.name()).isEqualTo(bannerRequest.name());
         assertThat(responseOfPostRequest.description()).isEqualTo(bannerRequest.description());
+        assertThat(responseOfPostRequest.categoryName()).isEqualTo("Electronics");
 
         Banner banner = bannerRepository.findById(responseOfPostRequest.id()).orElse(null);
         assertThat(banner).isNotNull();
@@ -135,19 +174,80 @@ public class BannerControllerTest {
         assertThat(responseOfGetRequest.id()).isNotNull();
         assertThat(responseOfGetRequest.name()).isEqualTo(bannerRequest.name());
         assertThat(responseOfGetRequest.description()).isEqualTo(bannerRequest.description());
+        assertThat(responseOfPostRequest.categoryName()).isEqualTo("Electronics");
+    }
+
+    @Test
+    @SneakyThrows
+    void shouldNotCreateBannerBecauseCategoryNotFound() {
+        BannerRequest bannerRequest = new BannerRequest("NAME2", "DESCRIPTION2", "1");
+
+        stubFor(WireMock.get(urlEqualTo("/1"))
+                .willReturn(
+                        aResponse()
+                                .withStatus(404)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-2.json")
+                )
+        );
+
+        MvcResult result =
+                mockMvc.perform(
+                                post("/")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(bannerRequest))
+                        )
+                        .andExpect(status().isInternalServerError())
+                        .andExpect(header().doesNotExist("Location"))
+                        .andReturn();
+
+
+        ApiErrorResponse response =
+                objectMapper.readValue(result.getResponse().getContentAsString(), ApiErrorResponse.class);
+
+        assertThat(response.code()).isEqualTo("CATEGORY_NOT_FOUND");
+        assertThat(response.message()).isEqualTo("Category not found: 1");
+
+        Banner banner = bannerRepository.findByName("NAME2").orElse(null);
+        assertThat(banner).isNull();
     }
 
     @Test
     @SneakyThrows
     void shouldUpdateBannerAndReturnIt() {
         String bannerId = "banner1";
-        bannerRepository.save(Banner.builder().id(bannerId).name("NAME1").description("DESCRIPTION1").build());
+        bannerRepository.save(Banner.builder().id(bannerId).name("NAME1").description("DESCRIPTION1")
+                .build());
 
-        BannerRequest updateBannerRequest1 = new BannerRequest("  ", "DESCRIPTION2");
-        BannerResponse expected1 = new BannerResponse(bannerId, "NAME1", "DESCRIPTION2", List.of());
+        BannerRequest updateBannerRequest1 = new BannerRequest("  ", "DESCRIPTION2", "2");
+        BannerResponse expected1 = new BannerResponse(bannerId, "NAME1", "DESCRIPTION2",
+                "Electronics", List.of());
 
-        BannerRequest updateBannerRequest2 = new BannerRequest("NAME2", null);
-        BannerResponse expected2 = new BannerResponse(bannerId, "NAME2", "DESCRIPTION2", List.of());
+        BannerRequest updateBannerRequest2 = new BannerRequest("NAME2", null, "2");
+        BannerResponse expected2 = new BannerResponse(bannerId, "NAME2", "DESCRIPTION2",
+                "Electronics", List.of());
+
+        BannerRequest updateBannerRequest3 = new BannerRequest("NAME3", "DESCRIPTION2", "1");
+        Banner expected3 = Banner.builder().id(bannerId).name("NAME2").description("DESCRIPTION2").categoryId("2")
+                .build();
+
+        stubFor(WireMock.get(urlEqualTo("/1"))
+                .willReturn(
+                        aResponse()
+                                .withStatus(404)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-2.json")
+                )
+        );
+
+        stubFor(WireMock.get(urlEqualTo("/2"))
+                .willReturn(
+                        aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBodyFile("wiremock/response-1.json")
+                )
+        );
 
         MvcResult result1 = mockMvc.perform(
                 put("/{bannerId}", bannerId)
@@ -172,12 +272,22 @@ public class BannerControllerTest {
         BannerResponse response2 = objectMapper.readValue(result2.getResponse().getContentAsString(), BannerResponse.class);
 
         assertThat(response2).isEqualTo(expected2);
+
+        mockMvc.perform(
+                        put("/{bannerId}", bannerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateBannerRequest3))
+                )
+                .andExpect(status().isInternalServerError());
+
+        Banner result3 = bannerRepository.findById(bannerId).orElse(null);
+        assertThat(expected3).isEqualTo(result3);
     }
 
     @Test
     @SneakyThrows
     void shouldReturn404WhenBannerToUpdateNotFound() {
-        BannerRequest updateBannerRequest = new BannerRequest("NAME1", "DESCRIPTION1");
+        BannerRequest updateBannerRequest = new BannerRequest("NAME1", "DESCRIPTION1", "");
 
         mockMvc.perform(
                 put("/banner1")

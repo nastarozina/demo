@@ -12,15 +12,18 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
+import ru.rozhi.client.CategoryClient;
 import ru.rozhi.configuration.StorageProperties;
 import ru.rozhi.controller.dto.BannerRequest;
 import ru.rozhi.controller.dto.BannerResponse;
+import ru.rozhi.controller.dto.CategoryResponse;
 import ru.rozhi.controller.dto.UploadUrlRequest;
 import ru.rozhi.controller.dto.UploadUrlResponse;
 import ru.rozhi.repository.BannerRepository;
@@ -41,6 +44,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -63,6 +67,9 @@ public class ImageControllerTest {
 
     @Autowired
     private StorageProperties storageProperties;
+
+    @MockitoBean
+    private CategoryClient categoryClient;
 
     @Container
     @ServiceConnection
@@ -115,7 +122,8 @@ public class ImageControllerTest {
     @Test
     @SneakyThrows
     public void checkImageUploadProcess() {
-        BannerRequest bannerRequest = new BannerRequest("NAME1", "DESCRIPTION1");
+        BannerRequest bannerRequest = new BannerRequest("NAME1", "DESCRIPTION1", "1");
+        when(categoryClient.getCategory("1")).thenReturn(new CategoryResponse("1", "Electronics"));
         MvcResult createResult = mockMvc.perform(
                 post("/")
                         .contentType(MediaType.APPLICATION_JSON)
