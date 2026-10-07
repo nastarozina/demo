@@ -14,28 +14,29 @@ spring:
 
   cloud:
     gateway:
-      mvc:
-        routes:
-          - id: auth-service
-            uri: lb://auth-service
-            predicates:
-              - Path=/api/auth/**
-            filters:
-              - StripPrefix=1
+      server:
+        webmvc:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=1
 
-          - id: user-service
-            uri: lb://user-service
-            predicates:
-              - Path=/api/users/**
-            filters:
-              - StripPrefix=1
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - StripPrefix=1
 
-          - id: order-service
-            uri: lb://order-service
-            predicates:
-              - Path=/api/orders/**
-            filters:
-              - StripPrefix=1
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
+              filters:
+                - StripPrefix=1
 
   security:
     oauth2:

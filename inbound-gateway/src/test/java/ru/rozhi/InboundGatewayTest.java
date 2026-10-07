@@ -1,18 +1,20 @@
 package ru.rozhi;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
@@ -26,12 +28,12 @@ import java.util.Map;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
+@AutoConfigureWebTestClient
 @EnableWireMock
 @Testcontainers
 public class InboundGatewayTest {
@@ -42,10 +44,7 @@ public class InboundGatewayTest {
     ).withRealmImportFile("test-realm.json");
 
     @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private WireMockServer wireMockServer;
+    private WebTestClient webTestClient;
 
     private String validUserToken;
     private String validAdminToken;
@@ -55,9 +54,9 @@ public class InboundGatewayTest {
         // Указываем Spring Security брать ключи из запущенного контейнера Keycloak
         String authServerUrl = keycloak.getAuthServerUrl();
         registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri",
-                () -> authServerUrl + "/realms/test-realm");
+                () -> authServerUrl + "/realms/test");
         registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
-                () -> authServerUrl + "/realms/test-realm/protocol/openid-connect/certs");
+                () -> authServerUrl + "/realms/test/protocol/openid-connect/certs");
     }
 
     @BeforeEach
@@ -68,67 +67,72 @@ public class InboundGatewayTest {
 
     @Test
     void whenNoToken_thenReturns401Unauthorized() throws Exception {
-        mockMvc.perform(get("/api/users/profile"))
-                .andExpect(status().isUnauthorized());
+        webTestClient.get()
+                .uri("/api/user/profile")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
     void whenInvalidToken_thenReturns401Unauthorized() throws Exception {
-        mockMvc.perform(get("/api/users/profile")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token-string"))
-                .andExpect(status().isUnauthorized());
+        webTestClient.get()
+                .uri("/api/user/profile")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token-string")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
     void whenUserToken_thenReturns200AndForwardsUserIdHeader() throws Exception {
-        // Настраиваем ожидание от WireMock: он должен получить запрос с конкретным заголовком
-        wireMockServer.stubFor(get(urlEqualTo("/profile"))
-                .withHeader("X-User-Id", equalTo("testuser-uuid")) // Subject из токена
-                .withHeader("X-User-Email", equalTo("testuser@example.com"))
+        String userId = extractSubject(validUserToken);
+        stubFor(WireMock.get(urlEqualTo("/profile"))
+                .withHeader("X-User-Id", equalTo(userId)) // Subject из токена
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"message\": \"Hello from user-service\"}")));
 
         // Выполняем запрос через Gateway
-        mockMvc.perform(get("/api/users/profile")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Hello from user-service"));
+        webTestClient.get()
+                .uri("/api/user/profile")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.message").isEqualTo("Hello from user-service");
 
         // Проверяем, что WireMock действительно получил запрос (маршрутизация сработала)
-        wireMockServer.verify(getRequestedFor(urlEqualTo("/profile"))
-                .withHeader("X-User-Id", equalTo("testuser-uuid")));
+        verify(getRequestedFor(urlEqualTo("/profile"))
+                .withHeader("X-User-Id", equalTo(userId)));
     }
 
     @Test
     void whenAdminTokenAccessingAdminEndpoint_thenReturns200() throws Exception {
-        wireMockServer.stubFor(get(urlEqualTo("/admin/data"))
-                .willReturn(aResponse().withStatus(200).withBody("{\"role\": \"ADMIN\"}")));
+        stubFor(WireMock.get(urlEqualTo("/data"))
+                .willReturn(aResponse().withStatus(200)));
 
-        mockMvc.perform(get("/api/admin/data")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validAdminToken))
-                .andExpect(status().isOk());
+        webTestClient.get()
+                .uri("/api/admin/data")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validAdminToken)
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
     void whenUserTokenAccessingAdminEndpoint_thenReturns403Forbidden() throws Exception {
         // У testuser нет роли ADMIN, только USER
-        mockMvc.perform(get("/api/admin/data")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken))
-                .andExpect(status().isForbidden());
+        webTestClient.get()
+                .uri("/api/admin/data")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken)
+                .exchange()
+                .expectStatus().isForbidden();
     }
 
     private String obtainAccessToken(String username, String password) {
-        String tokenEndpoint = keycloak.getAuthServerUrl() + "/realms/test-realm/protocol/openid-connect/token";
+        String tokenEndpoint = keycloak.getAuthServerUrl()
+                + "/realms/test/protocol/openid-connect/token";
 
-        RestClient restClient = RestClient.builder()
-                .baseUrl(tokenEndpoint)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .defaultStatusHandler(HttpStatusCode::isError, (request, response) -> {
-                    throw new RuntimeException("Failed to obtain token: " + response.getStatusCode());
-                })
-                .build();
+        RestClient restClient = RestClient.builder().build();
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -137,10 +141,21 @@ public class InboundGatewayTest {
         formData.add("password", password);
 
         Map<String, Object> response = restClient.post()
+                .uri(tokenEndpoint)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(formData)
                 .retrieve()
                 .body(Map.class);
 
         return (String) response.get("access_token");
+    }
+
+    private String extractSubject(String token) {
+        JwtDecoder decoder = JwtDecoders.fromIssuerLocation(
+                keycloak.getAuthServerUrl() + "/realms/test"
+        );
+
+        Jwt jwt = decoder.decode(token);
+        return jwt.getSubject();
     }
 }

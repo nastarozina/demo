@@ -1,5 +1,5 @@
 {
-  "realm": "test-realm",
+  "realm": "test",
   "enabled": true,
   "clients": [
     {
@@ -26,11 +26,16 @@
     {
       "username": "testuser",
       "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
       "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
       "credentials": [
         {
           "type": "password",
-          "value": "password"
+          "value": "password",
+          "temporary": false
         }
       ],
       "realmRoles": ["USER"]
@@ -38,11 +43,16 @@
     {
       "username": "adminuser",
       "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
       "email": "admin@example.com",
+      "firstName": "Test",
+      "lastName": "Admin",
       "credentials": [
         {
           "type": "password",
-          "value": "password"
+          "value": "password",
+          "temporary": false
         }
       ],
       "realmRoles": ["ADMIN"]
