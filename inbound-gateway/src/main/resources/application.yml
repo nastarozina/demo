@@ -23,7 +23,7 @@ spring:
                 - Path=/api/auth/**
               filters:
                 - StripPrefix=2
-                -
+
             - id: minio-gateway
               uri: http://minio
               predicates:
@@ -56,8 +56,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak/realms/${KEYCLOAK_REALM}
-          jwk-set-uri: http://keycloak/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+          issuer-uri: ${ISSUER_URI:http://localhost:8080/api/auth/realms/test}
+          jwk-set-uri: ${JWK_SET_URI:http://keycloak/realms/test/protocol/openid-connect/certs}
 
 # Конфигурация правил авторизации
 security:

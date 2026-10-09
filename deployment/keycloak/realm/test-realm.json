@@ -53,7 +53,8 @@
       "directAccessGrantsEnabled": false,
 
       "redirectUris": [
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "https://oauth.pstmn.io/v1/callback"
       ],
 
       "webOrigins": [
