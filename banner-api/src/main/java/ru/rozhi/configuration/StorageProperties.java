@@ -14,5 +14,5 @@ public class StorageProperties {
 
     private Duration presignedUrlExpiry = Duration.ofMinutes(5);
 
-    private URI externalEndpoint;
+    private URI presignedUrlHost;
 }
