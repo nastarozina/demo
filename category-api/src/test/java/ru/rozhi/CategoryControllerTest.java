@@ -322,6 +322,7 @@ public class CategoryControllerTest {
     @SneakyThrows
     void shouldEvictCacheOnDelete() {
         categoryRepository.save(Category.builder().id("category1").name("NAME1").build());
+        System.out.println("привет");
 
         mockMvc.perform(get("/categories/category1"))
                 .andExpect(status().isOk());
